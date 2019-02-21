@@ -1,0 +1,277 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: beacon-network # NOTE: update this with your service name
+plugins:
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - requirements.txt
+    - serverless.yml
+
+custom:
+  networkTableName: 'beacon-network-table-${self:provider.stage}'
+  clientTableName: 'client-table-${self:provider.stage}'
+  campaignTableName: 'campaign-table-${self:provider.stage}'
+  deviceTableName: 'device-table-${self:provider.stage}'
+  region: us-east-2
+  pythonRequirements:
+    dockerizePip: true
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: dev
+  region: us-west-2
+  environment:
+      NETWORK_TABLE: ${self:custom.networkTableName}
+      CLIENT_TABLE: ${self:custom.clientTableName}
+      CAMPAIGN_TABLE: ${self:custom.campaignTableName}
+      DEVICE_TABLE: ${self:custom.deviceTableName}
+      EMAIL_USER: "AKIAJENKWOTDIPHRHTEA"
+      EMAIL_PASSWORD: "BMO2AOfh0vWqS2cEmoXVPtyRCxKaui/O+m9qCSxBicQF"
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - ses:SendEmail
+        - ses:SendRawEmail
+      Resource:
+        - { "Fn::GetAtt": ["NetworkDynamoDBTable", "Arn" ] }
+        - { "Fn::GetAtt": ["ClientDynamoDBTable", "Arn" ] }
+        - { "Fn::GetAtt": ["CampaignDynamoDBTable", "Arn" ] }
+        - { "Fn::GetAtt": ["deviceDynamoDBTable", "Arn" ] }
+        - "arn:aws:ses:us-west-2:138961648379:identity/dayo.akinbami@spongegroup.com.ng"
+        - "arn:aws:ses:us-west-2:138961648379:identity/goldenmorncereal@gmail.com"
+
+# you can overwrite defaults here
+
+
+# you can add statements to the Lambda function's IAM Role here
+#  iamRoleStatements:
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:ListBucket"
+#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:PutObject"
+#      Resource:
+#        Fn::Join:
+#          - ""
+#          - - "arn:aws:s3:::"
+#            - "Ref" : "ServerlessDeploymentBucket"
+#            - "/*"
+
+# you can define service wide environment variables here
+#  environment:
+#    variable1: value1
+
+# you can add packaging information here
+#package:
+#  include:
+#    - include-me.py
+#    - include-me-dir/**
+#  exclude:
+#    - exclude-me.py
+#    - exclude-me-dir/**
+
+functions:
+  createCampaign:
+    handler:  src/Lambdas/Campaign/create.create
+    events:
+      - http:
+          method: post
+          path: /campaign/create
+          cors: true
+  getCampaign:
+    handler:  src/Lambdas/Campaign/get.get
+    events:
+      - http:
+          method: get
+          path: /campaign/get
+          cors: true
+  fetchCampaign:
+    handler:  src/Lambdas/Campaign/get.fetch
+    events:
+      - http:
+          method: post
+          path: /campaign/fetch
+          cors: true
+  listCampaign:
+    handler:  src/Lambdas/Campaign/list.list
+    events:
+      - http:
+          method: get
+          path: /campaigns
+          cors: true
+  updateCampaign:
+    handler: src/Lambdas/Campaign/update.update
+    events:
+      - http:
+          path: /network/{id}/update
+          method: put
+          cors: true
+  deleteCampaign:
+    handler: src/Lambdas/Campaign/delete.delete
+    events:
+      - http:
+          path: /campaign/{id}/delete
+          method: delete
+          cors: true
+
+  createNetwork:
+    handler:  src/Lambdas/Network/create.create
+    events:
+      - http:
+          method: post
+          path: /network/create
+          cors: true
+  getNetwork:
+    handler:  src/Lambdas/Network/get.get
+    events:
+      - http:
+          method: get
+          path: /network/{id}
+          cors: true
+  listNetwork:
+    handler:  src/Lambdas/Network/list.list
+    events:
+      - http:
+          method: get
+          path: /networks
+          cors: true
+  updateNetwork:
+    handler: src/Lambdas/Network/update.update
+    events:
+      - http:
+          path: /network/{id}/update
+          method: put
+          cors: true
+  deleteNetwork:
+    handler: src/Lambdas/Network/delete.delete
+    events:
+      - http:
+          path: /network/{id}/delete
+          method: delete
+          cors: true
+
+#    The following are a few example events you can configure
+#    NOTE: Please make sure to change your handler code to work with those events
+#    Check the event documentation for details
+#    events:
+#      - http:
+#          path: users/create
+#          method: get
+#      - s3: ${env:BUCKET}
+#      - schedule: rate(10 minutes)
+#      - sns: greeter-topic
+#      - stream: arn:aws:dynamodb:region:XXXXXX:table/foo/stream/1970-01-01T00:00:00.000
+#      - alexaSkill: amzn1.ask.skill.xx-xx-xx-xx
+#      - alexaSmartHome: amzn1.ask.skill.xx-xx-xx-xx
+#      - iot:
+#          sql: "SELECT * FROM 'some_topic'"
+#      - cloudwatchEvent:
+#          event:
+#            source:
+#              - "aws.ec2"
+#            detail-type:
+#              - "EC2 Instance State-change Notification"
+#            detail:
+#              state:
+#                - pending
+#      - cloudwatchLog: '/aws/lambda/hello'
+#      - cognitoUserPool:
+#          pool: MyUserPool
+#          trigger: PreSignUp
+
+#    Define function environment variables here
+#    environment:
+#      variable2: value2
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    NetworkDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: network_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: network_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.networkTableName}
+
+    ClientDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: client_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: client_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 3
+          WriteCapacityUnits: 3
+        TableName: ${self:custom.clientTableName}
+
+    CampaignDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: campaign_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: campaign_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 10
+          WriteCapacityUnits: 10
+        TableName: ${self:custom.campaignTableName}
+
+    deviceDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: device_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: device_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 100
+          WriteCapacityUnits: 100
+        TableName: ${self:custom.deviceTableName}
